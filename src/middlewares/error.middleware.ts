@@ -1,17 +1,16 @@
+import type { Request, Response, NextFunction } from "express";
 
-import { RequestHandler, ErrorRequestHandler } from "express";
-
-export const notFoundHandler: RequestHandler = (req, res) => {
+export function notFoundHandler(req: Request, res: Response) {
     res.status(404).json({
         success: false,
         message: "Route not found"
     });
-};
+}
 
-export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
     console.log(err);
     res.status(500).json({
         success: false,
         message: "Server error"
     });
-};
+}

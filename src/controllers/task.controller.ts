@@ -83,7 +83,6 @@ export async function getAllTasksController(req: Request, res: Response): Promis
 }
 
 
-// GET TASK BY ID
 export async function getTaskByIdController(req: Request, res: Response): Promise<void> {
     try {
         const id = String(req.params.id);
@@ -220,7 +219,6 @@ export async function getTaskStatsController(req: Request, res: Response): Promi
     }
 }
 
-// Aliases used by task.routes.ts
 export const getTasks = getAllTasksController;
 export const createTask = createTaskController;
 export const getTaskById = getTaskByIdController;
