@@ -1,18 +1,17 @@
 
 import { RequestHandler, ErrorRequestHandler } from "express";
 
-export const notFoundHandler: RequestHandler = (_req, res) => {
+export const notFoundHandler: RequestHandler = (req, res) => {
     res.status(404).json({
         success: false,
         message: "Route not found"
     });
 };
 
-export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-    console.error(error);
-
+export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+    console.log(err);
     res.status(500).json({
         success: false,
-        message: "Internal server error"
+        message: "Server error"
     });
 };
