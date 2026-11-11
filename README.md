@@ -1,36 +1,31 @@
 # Task Management API
 
-A RESTful API for managing tasks, built with **Node.js, Express.js, and TypeScript**. The project supports creating, viewing, updating, deleting, filtering, and organizing tasks. Data is stored locally in a JSON file without using a database.
+A simple REST API for managing tasks, built with Node.js, Express and TypeScript. Tasks are saved in a JSON file, so no database is needed.
 
 ## Features
 
-- Create, read, update, and delete tasks (CRUD).
-- Update task status independently.
-- Filter tasks by status and priority.
-- Search tasks by title and description.
-- Sort tasks by different fields.
-- Paginate task results.
-- Get task statistics.
-- Basic request validation.
-- Centralized error handling.
-- Persistent data storage using a JSON file.
+- Create, read, update and delete tasks
+- Change only the status of a task
+- Filter tasks by status and priority
+- Search tasks by title or description
+- Sort tasks and use pagination
+- Task statistics (count by status and priority)
+- Input validation with simple `if` checks
+- Error handling for unknown routes and server errors
 
-## Technologies Used
+## Technologies
 
 - Node.js
-- Express.js
+- Express
 - TypeScript
-- JSON File Storage
-- UUID
-- dotenv
-- CORS
-- Morgan
-- Nodemon
+- uuid (for task ids)
+- dotenv (for the PORT setting)
+- nodemon and ts-node (for development)
 
 ## Project Structure
 
-```text
-task-management-api/
+```
+Task-managment-api/
 ├── data/
 │   └── tasks.json
 ├── src/
@@ -49,137 +44,232 @@ task-management-api/
 │   │   └── file.utils.ts
 │   ├── app.ts
 │   └── server.ts
-├── .env.example
-├── .gitignore
 ├── package.json
-├── package-lock.json
 └── tsconfig.json
 ```
 
-## Installation
+| Folder | Job |
+| --- | --- |
+| `routes` | Connects each URL to a controller function |
+| `middlewares` | Validates input and handles errors |
+| `controllers` | Receives the request and sends the response |
+| `services` | Contains the task logic (filter, sort, create, update, delete) |
+| `utils` | Reads and writes the `tasks.json` file |
+| `types` | TypeScript types for tasks |
 
-Make sure you have Node.js 18 or newer and npm installed.
+## Getting Started
 
-Clone the repository:
+### 1. Clone the project
 
 ```bash
-git clone https://github.com/Obada111/task-management-api.git
+git clone <your-repository-url>
+cd Task-managment-api
 ```
 
-Navigate to the project directory:
-
-```bash
-cd task-management-api
-```
-
-Install dependencies:
+### 2. Install the packages
 
 ```bash
 npm install
 ```
 
-## Environment Variables
+### 3. Create the data file
 
-Create a `.env` file in the root directory:
+The file `data/tasks.json` must exist. If it is missing, create it with this content:
 
-```env
-PORT=3000
-NODE_ENV=development
+```json
+[]
 ```
 
-## Running the Project
+### 4. Set the port (optional)
 
-Start the development server:
+Create a `.env` file in the main folder:
+
+```
+PORT=3000
+```
+
+If there is no `.env` file, the server uses port 3000.
+
+### 5. Run the project
 
 ```bash
 npm run dev
 ```
 
-The API will be available at:
+You should see:
 
-```text
-http://localhost:3000
 ```
+Server running on port 3000
+```
+
+### Other commands
+
+```bash
+npm run typecheck
+```
+
+Checks the TypeScript code for errors without running it.
 
 ## API Endpoints
 
-All task endpoints use the `/api/tasks` base path.
+Base URL: `http://localhost:3000`
 
 | Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/tasks` | Get all tasks |
+| --- | --- | --- |
+| GET | `/health` | Check that the server is running |
+| GET | `/api/tasks` | Get all tasks (with filter, search, sort, pagination) |
 | GET | `/api/tasks/stats` | Get task statistics |
-| GET | `/api/tasks/:id` | Get a task by ID |
-| POST | `/api/tasks` | Create a new task |
+| GET | `/api/tasks/:id` | Get one task |
+| POST | `/api/tasks` | Create a task |
 | PUT | `/api/tasks/:id` | Update a task |
-| PATCH | `/api/tasks/:id/status` | Update task status |
+| PATCH | `/api/tasks/:id/status` | Update only the status |
 | DELETE | `/api/tasks/:id` | Delete a task |
 
-## Task Properties
+### Task fields
 
-| Property | Type | Description |
-|---|---|---|
-| id | String | Unique task ID |
-| title | String | Task title |
-| description | String | Task description |
-| status | String | pending, in-progress, or completed |
-| priority | String | low, medium, or high |
-| dueDate | String | Task due date |
-| createdAt | String | Creation date |
-| updatedAt | String | Last update date |
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `title` | string | Yes (on create) | 1 to 120 characters |
+| `description` | string | No | Maximum 1000 characters |
+| `status` | string | No | `pending`, `in-progress` or `completed` (default `pending`) |
+| `priority` | string | No | `low`, `medium` or `high` (default `medium`) |
+| `dueDate` | string | No | Format `YYYY-MM-DD`, for example `2026-12-31` (send `null` on update to remove it) |
 
-## Query Parameters
+The server also adds `id`, `createdAt` and `updatedAt` automatically.
 
-The `GET /api/tasks` endpoint supports:
+### Query parameters for `GET /api/tasks`
 
-| Parameter | Description |
-|---|---|
-| status | Filter by task status |
-| priority | Filter by priority |
-| search | Search by title or description |
-| sortBy | Sort by createdAt, dueDate, priority, or title |
-| order | Sort order: asc or desc |
-| page | Page number |
-| limit | Number of tasks per page |
+| Parameter | Description | Example |
+| --- | --- | --- |
+| `status` | Filter by status | `?status=pending` |
+| `priority` | Filter by priority | `?priority=high` |
+| `search` | Search in title and description | `?search=express` |
+| `sortBy` | `createdAt`, `dueDate`, `priority` or `title` (default `createdAt`) | `?sortBy=priority` |
+| `order` | `asc` or `desc` (default `desc`) | `?order=asc` |
+| `page` | Page number (default 1) | `?page=2` |
+| `limit` | Tasks per page (default 10, maximum 100) | `?limit=5` |
 
-Example:
+You can combine them:
 
-```text
-GET /api/tasks?status=pending&priority=high&page=1&limit=10
+```
+GET /api/tasks?status=pending&sortBy=priority&order=asc&page=1&limit=5
 ```
 
-## Example Request
+## Examples
 
-Create a task:
+### Create a task
 
-**POST** `/api/tasks`
+```
+POST /api/tasks
+Content-Type: application/json
 
-```json
 {
-  "title": "Learn Node.js",
-  "description": "Build a REST API",
+  "title": "Learn Express",
+  "description": "Finish the routing chapter",
   "priority": "high",
-  "dueDate": "2026-11-15"
+  "dueDate": "2026-12-31"
 }
 ```
 
-## Testing
+Response (status 201):
 
-The API can be tested using **Postman**.
+```json
+{
+  "success": true,
+  "data": {
+    "id": "ba7ac546-194a-4220-8ac1-254580d242b4",
+    "title": "Learn Express",
+    "description": "Finish the routing chapter",
+    "status": "pending",
+    "priority": "high",
+    "dueDate": "2026-12-31",
+    "createdAt": "2026-11-11T18:57:05.680Z",
+    "updatedAt": "2026-11-11T18:57:05.680Z"
+  }
+}
+```
 
-1. Start the development server.
-2. Open Postman.
-3. Create requests using the endpoints listed above.
-4. Send requests and check their responses.
+### Update only the status
 
-## Data Storage
+```
+PATCH /api/tasks/ba7ac546-194a-4220-8ac1-254580d242b4/status
+Content-Type: application/json
 
-Tasks are stored in `data/tasks.json`.
+{
+  "status": "completed"
+}
+```
 
-The project uses local JSON file storage instead of a database. This makes it suitable for learning and small development projects.
+### Get statistics
 
----
+```
+GET /api/tasks/stats
+```
 
-**Author:** Obada Joba
+```json
+{
+  "success": true,
+  "data": {
+    "total": 2,
+    "byStatus": { "pending": 1, "in-progress": 0, "completed": 1 },
+    "byPriority": { "low": 1, "medium": 0, "high": 1 }
+  }
+}
+```
 
-**GitHub:** [Obada111](https://github.com/Obada111)
+### Test with PowerShell
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/tasks -ContentType "application/json" -Body '{"title":"Learn Express","priority":"high"}'
+```
+
+### Test with curl
+
+```bash
+curl -X POST http://localhost:3000/api/tasks -H "Content-Type: application/json" -d '{"title":"Learn Express","priority":"high"}'
+```
+
+## Response Format
+
+Every response has a `success` field.
+
+Success:
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+Error:
+
+```json
+{
+  "success": false,
+  "message": "Title is required"
+}
+```
+
+| Status code | Meaning |
+| --- | --- |
+| 200 | OK |
+| 201 | Task created |
+| 400 | Invalid input |
+| 404 | Task or route not found |
+| 500 | Server error |
+
+## Validation Rules
+
+- `POST /api/tasks`: `title` is required
+- `PUT /api/tasks/:id`: send at least one field
+- `PATCH /api/tasks/:id/status`: `status` is required
+- `title` must be a non-empty text with a maximum of 120 characters
+- `description` must be a text with a maximum of 1000 characters
+- `status` must be `pending`, `in-progress` or `completed`
+- `priority` must be `low`, `medium` or `high`
+- `dueDate` must be a real date in the format `YYYY-MM-DD`
+
+## Author
+
+Obada Joba
