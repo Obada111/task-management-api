@@ -391,7 +391,6 @@ This project uses TypeORM as its Object-Relational Mapper (ORM) to interact with
 All task data is persisted in MySQL.
 
 ## Author
-Obada joba
 **Obada Joba**
 
 GitHub: [@Obada111](https://github.com/Obada111)
