@@ -1,6 +1,6 @@
 # Task Management API
 
-A simple REST API for managing tasks, built with Node.js, Express and TypeScript. Tasks are saved in a JSON file, so no database is needed.
+A simple REST API for managing tasks, built with Node.js, Express and TypeScript. Tasks are stored in a MySQL database and accessed through TypeORM.
 
 ## Features
 
@@ -18,44 +18,53 @@ A simple REST API for managing tasks, built with Node.js, Express and TypeScript
 - Node.js
 - Express
 - TypeScript
-- uuid (for task ids)
-- dotenv (for the PORT setting)
+- MySQL
+- TypeORM
+- mysql2
+- dotenv (for environment configuration)
 - nodemon and ts-node (for development)
 
 ## Project Structure
 
 ```
 Task-managment-api/
-├── data/
-│   └── tasks.json
 ├── src/
 │   ├── controllers/
 │   │   └── task.controller.ts
+│   ├── entities/
+│   │   └── Task.ts
 │   ├── middlewares/
 │   │   ├── error.middleware.ts
 │   │   └── validate.middleware.ts
+│   ├── migrations/
+│   │   └── 1794754007655-CreateTasksTable.ts
 │   ├── routes/
 │   │   └── task.routes.ts
 │   ├── services/
 │   │   └── task.service.ts
 │   ├── types/
 │   │   └── task.types.ts
-│   ├── utils/
-│   │   └── file.utils.ts
 │   ├── app.ts
-│   └── server.ts
+│   ├── data-source.ts
+│   ├── server.ts
+│   └── test-db.ts
+├── .env.example
 ├── package.json
 └── tsconfig.json
 ```
 
-| Folder | Job |
+| Path | Job |
 | --- | --- |
 | `routes` | Connects each URL to a controller function |
 | `middlewares` | Validates input and handles errors |
 | `controllers` | Receives the request and sends the response |
-| `services` | Contains the task logic (filter, sort, create, update, delete) |
-| `utils` | Reads and writes the `tasks.json` file |
+| `services` | Contains the task logic and uses the TypeORM repository |
+| `entities` | Maps TypeScript classes to the `tasks` table |
+| `migrations` | Creates and updates the database schema |
 | `types` | TypeScript types for tasks |
+| `data-source.ts` | Configures the MySQL DataSource |
+| `server.ts` | Initializes the database before starting the server |
+| `test-db.ts` | Optional standalone database connection test |
 
 ## Getting Started
 
@@ -72,25 +81,40 @@ cd Task-managment-api
 npm install
 ```
 
-### 3. Create the data file
+### 3. Configure the environment
 
-The file `data/tasks.json` must exist. If it is missing, create it with this content:
-
-```json
-[]
-```
-
-### 4. Set the port (optional)
-
-Create a `.env` file in the main folder:
+Copy `.env.example` to `.env` and fill in your local values:
 
 ```
+NODE_ENV=development
 PORT=3000
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password_here
+DB_NAME=task_management
 ```
 
-If there is no `.env` file, the server uses port 3000.
+`.env` is ignored by Git. Never commit real credentials.
 
-### 5. Run the project
+### 4. Create the database
+
+In DBeaver or any MySQL client, create the database if it does not exist:
+
+```sql
+CREATE DATABASE IF NOT EXISTS task_management
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+```
+
+### 5. Run the migrations
+
+```bash
+npm run typeorm -- migration:run -d src/data-source.ts
+```
+
+### 6. Run the project
 
 ```bash
 npm run dev
@@ -99,8 +123,17 @@ npm run dev
 You should see:
 
 ```
+Database connected
 Server running on port 3000
 ```
+
+### Optional: test the database connection
+
+```bash
+npx ts-node src/test-db.ts
+```
+
+It prints `Connected` when the database is reachable.
 
 ### Other commands
 
@@ -109,6 +142,13 @@ npm run typecheck
 ```
 
 Checks the TypeScript code for errors without running it.
+
+```bash
+npm run build
+npm start
+```
+
+Builds the project to `dist/` and runs the compiled server.
 
 ## API Endpoints
 

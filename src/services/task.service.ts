@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
-import { readTasks, writeTasks } from "../utils/file.utils";
+import { AppDataSource } from "../data-source";
+import { TaskEntity } from "../entities/Task";
 import type {
     Task,
     CreateTaskInput,
@@ -9,113 +9,111 @@ import type {
     TaskStats
 } from "../types/task.types";
 
-const priorityOrder: Record<Task["priority"], number> = {
-    low: 1,
-    medium: 2,
-    high: 3
-};
-
-function compareTasks(a: Task, b: Task, sortBy: string): number {
-    if (sortBy === "priority") {
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
-    }
-
-    if (sortBy === "title") {
-        return a.title.localeCompare(b.title);
-    }
-
-    if (sortBy === "dueDate") {
-        if (!a.dueDate && !b.dueDate) {
-            return 0;
-        }
-        if (!a.dueDate) {
-            return 1;
-        }
-        if (!b.dueDate) {
-            return -1;
-        }
-        return a.dueDate.localeCompare(b.dueDate);
-    }
-
-    return a.createdAt.localeCompare(b.createdAt);
+function toTask(entity: TaskEntity): Task {
+    return {
+        id: entity.id,
+        title: entity.title,
+        description: entity.description,
+        status: entity.status,
+        priority: entity.priority,
+        ...(entity.dueDate
+            ? { dueDate: entity.dueDate.toISOString().slice(0, 10) }
+            : {}),
+        createdAt: entity.createdAt.toISOString(),
+        updatedAt: entity.updatedAt.toISOString()
+    };
 }
 
 export async function getAllTasks(query: TaskQuery): Promise<TaskListResult> {
-    const tasks = await readTasks();
-
-    let result = [...tasks];
-
-    if (query.status) {
-        result = result.filter((task) => task.status === query.status);
-    }
-
-    if (query.priority) {
-        result = result.filter((task) => task.priority === query.priority);
-    }
-
-    if (query.search) {
-        const search = query.search.toLowerCase();
-        result = result.filter((task) =>
-            task.title.toLowerCase().includes(search) ||
-            (task.description ?? "").toLowerCase().includes(search)
-        );
-    }
-
-    const sortBy = query.sortBy || "createdAt";
-    const order = query.order || "desc";
-
-    result.sort((a, b) => {
-        const value = compareTasks(a, b, sortBy);
-        return order === "asc" ? value : -value;
-    });
+    const repository = AppDataSource.getRepository(TaskEntity);
 
     const page = query.page || 1;
     const limit = query.limit || 10;
-    const total = result.length;
-    const totalPages = Math.ceil(total / limit);
-    const start = (page - 1) * limit;
+    const sortBy = query.sortBy || "createdAt";
+    const order = query.order === "asc" ? "ASC" : "DESC";
+
+    const queryBuilder = repository.createQueryBuilder("task");
+
+    if (query.status) {
+        queryBuilder.andWhere("task.status = :status", {
+            status: query.status
+        });
+    }
+
+    if (query.priority) {
+        queryBuilder.andWhere("task.priority = :priority", {
+            priority: query.priority
+        });
+    }
+
+    if (query.search) {
+        queryBuilder.andWhere(
+            "(LOWER(task.title) LIKE :search OR LOWER(task.description) LIKE :search)",
+            { search: `%${query.search.toLowerCase()}%` }
+        );
+    }
+
+    if (sortBy === "priority") {
+        queryBuilder.orderBy(
+            "CASE task.priority WHEN 'high' THEN 3 WHEN 'medium' THEN 2 WHEN 'low' THEN 1 ELSE 0 END",
+            order
+        );
+    } else if (sortBy === "title") {
+        queryBuilder.orderBy("task.title", order);
+    } else if (sortBy === "dueDate") {
+        queryBuilder.orderBy("task.dueDate IS NULL", order);
+        queryBuilder.addOrderBy("task.dueDate", order);
+    } else {
+        queryBuilder.orderBy("task.createdAt", order);
+    }
+
+    queryBuilder.addOrderBy("task.id", "ASC");
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    const [entities, total] = await queryBuilder.getManyAndCount();
 
     return {
-        tasks: result.slice(start, start + limit),
-        pagination: { page, limit, total, totalPages }
+        tasks: entities.map(toTask),
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit)
+        }
     };
 }
 
 export async function getTaskById(id: string): Promise<Task | null> {
-    const tasks = await readTasks();
-    return tasks.find((task) => task.id === id) ?? null;
+    const repository = AppDataSource.getRepository(TaskEntity);
+
+    const task = await repository.findOneBy({ id });
+
+    return task ? toTask(task) : null;
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
-    const tasks = await readTasks();
+    const repository = AppDataSource.getRepository(TaskEntity);
 
-    const now = new Date().toISOString();
-
-    const newTask: Task = {
-        id: uuidv4(),
+    const task = repository.create({
         title: input.title.trim(),
         description: input.description?.trim() ?? "",
         status: input.status ?? "pending",
         priority: input.priority ?? "medium",
-        ...(input.dueDate ? { dueDate: input.dueDate } : {}),
-        createdAt: now,
-        updatedAt: now
-    };
+        dueDate: input.dueDate ? new Date(input.dueDate) : null
+    });
 
-    tasks.push(newTask);
+    const savedTask = await repository.save(task);
 
-    await writeTasks(tasks);
-
-    return newTask;
+    return toTask(savedTask);
 }
 
 export async function updateTask(
     id: string,
     input: UpdateTaskInput
 ): Promise<Task | null> {
-    const tasks = await readTasks();
+    const repository = AppDataSource.getRepository(TaskEntity);
 
-    const task = tasks.find((item) => item.id === id);
+    const task = await repository.findOneBy({ id });
 
     if (!task) {
         return null;
@@ -138,18 +136,14 @@ export async function updateTask(
     }
 
     if (input.dueDate !== undefined) {
-        if (input.dueDate === null) {
-            delete task.dueDate;
-        } else {
-            task.dueDate = input.dueDate;
-        }
+        task.dueDate = input.dueDate === null
+            ? null
+            : new Date(input.dueDate);
     }
 
-    task.updatedAt = new Date().toISOString();
+    const savedTask = await repository.save(task);
 
-    await writeTasks(tasks);
-
-    return task;
+    return toTask(savedTask);
 }
 
 export async function updateTaskStatus(
@@ -160,26 +154,34 @@ export async function updateTaskStatus(
 }
 
 export async function deleteTask(id: string): Promise<boolean> {
-    const tasks = await readTasks();
+    const repository = AppDataSource.getRepository(TaskEntity);
 
-    const index = tasks.findIndex((item) => item.id === id);
+    const result = await repository.delete({ id });
 
-    if (index === -1) {
-        return false;
-    }
-
-    tasks.splice(index, 1);
-
-    await writeTasks(tasks);
-
-    return true;
+    return (result.affected ?? 0) > 0;
 }
 
 export async function getTaskStats(): Promise<TaskStats> {
-    const tasks = await readTasks();
+    const repository = AppDataSource.getRepository(TaskEntity);
+
+    const [total, statusRows, priorityRows] = await Promise.all([
+        repository.count(),
+        repository
+            .createQueryBuilder("task")
+            .select("task.status", "status")
+            .addSelect("COUNT(*)", "count")
+            .groupBy("task.status")
+            .getRawMany<{ status: Task["status"]; count: string }>(),
+        repository
+            .createQueryBuilder("task")
+            .select("task.priority", "priority")
+            .addSelect("COUNT(*)", "count")
+            .groupBy("task.priority")
+            .getRawMany<{ priority: Task["priority"]; count: string }>()
+    ]);
 
     const stats: TaskStats = {
-        total: tasks.length,
+        total,
         byStatus: {
             pending: 0,
             "in-progress": 0,
@@ -192,9 +194,12 @@ export async function getTaskStats(): Promise<TaskStats> {
         }
     };
 
-    for (const task of tasks) {
-        stats.byStatus[task.status] += 1;
-        stats.byPriority[task.priority] += 1;
+    for (const row of statusRows) {
+        stats.byStatus[row.status] = Number(row.count);
+    }
+
+    for (const row of priorityRows) {
+        stats.byPriority[row.priority] = Number(row.count);
     }
 
     return stats;
