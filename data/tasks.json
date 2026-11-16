@@ -1,0 +1,21 @@
+[
+  {
+    "id": "5fad196d-5ac3-4c37-b7f0-b3dd4e6f8c18",
+    "title": "New Task",
+    "description": "",
+    "status": "pending",
+    "priority": "medium",
+    "createdAt": "2026-11-09T12:45:08.632Z",
+    "updatedAt": "2026-11-09T12:45:08.632Z"
+  },
+  {
+    "id": "7acfaae2-ea93-481a-befd-f999de9085de",
+    "title": "Learn Express",
+    "description": "Build my first REST API",
+    "status": "in-progress",
+    "priority": "high",
+    "dueDate": "2026-11-15",
+    "createdAt": "2026-11-09T12:45:32.853Z",
+    "updatedAt": "2026-11-09T12:45:32.853Z"
+  }
+]

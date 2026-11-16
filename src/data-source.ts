@@ -9,9 +9,9 @@ export const AppDataSource = new DataSource({
 
   host: process.env.DB_HOST || "localhost",
   port: Number(process.env.DB_PORT) || 3306,
-  username: process.env.DB_USER || process.env.DB_USERNAME || "root",
+  username: process.env.DB_USERNAME || "root",
   password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || process.env.DB_DATABASE || "task_management",
+  database: process.env.DB_DATABASE || "task_management",
 
   synchronize: false,
   logging: false,

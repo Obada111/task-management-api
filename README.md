@@ -1,259 +1,185 @@
 # Task Management API
 
-A RESTful API for managing tasks, built with Node.js, Express, TypeScript, MySQL, and TypeORM.
-
-The application supports task management, filtering, searching, sorting, pagination, and task statistics, with persistent data storage in MySQL.
+A simple REST API for managing tasks, built with Node.js, Express and TypeScript. Tasks are saved in a JSON file, so no database is needed.
 
 ## Features
 
-- Create, read, update, and delete tasks (CRUD).
-- Update task status independently.
-- Filter tasks by status and priority.
-- Search tasks by title or description.
-- Sort tasks by creation date, due date, priority, or title.
-- Paginate task results.
-- Get task statistics by status and priority.
-- Request validation using Express middleware.
-- Centralized error handling.
-- Persistent database storage using MySQL and TypeORM.
+- Create, read, update and delete tasks
+- Change only the status of a task
+- Filter tasks by status and priority
+- Search tasks by title or description
+- Sort tasks and use pagination
+- Task statistics (count by status and priority)
+- Input validation with simple `if` checks
+- Error handling for unknown routes and server errors
 
 ## Technologies
 
 - Node.js
-- Express.js
+- Express
 - TypeScript
-- MySQL
-- TypeORM
-- mysql2
-- dotenv
-- nodemon
-- ts-node
+- uuid (for task ids)
+- dotenv (for the PORT setting)
+- nodemon and ts-node (for development)
 
 ## Project Structure
 
-```text
-task-management-api/
+```
+Task-managment-api/
+├── data/
+│   └── tasks.json
 ├── src/
 │   ├── controllers/
 │   │   └── task.controller.ts
-│   ├── entities/
-│   │   └── Task.ts
 │   ├── middlewares/
 │   │   ├── error.middleware.ts
 │   │   └── validate.middleware.ts
-│   ├── migrations/
-│   │   └── 1794754007655-CreateTasksTable.ts
 │   ├── routes/
 │   │   └── task.routes.ts
 │   ├── services/
 │   │   └── task.service.ts
 │   ├── types/
 │   │   └── task.types.ts
+│   ├── utils/
+│   │   └── file.utils.ts
 │   ├── app.ts
-│   ├── data-source.ts
-│   ├── server.ts
-│   └── test-db.ts
-├── .env.example
-├── .gitignore
+│   └── server.ts
 ├── package.json
 └── tsconfig.json
 ```
 
-| Directory / File | Description |
-|---|---|
-| `routes` | Defines API endpoints and connects them to controllers |
-| `controllers` | Handles HTTP requests and responses |
-| `services` | Contains business logic and database operations |
-| `entities` | Defines database entities and table mappings |
-| `middlewares` | Handles request validation and errors |
-| `migrations` | Manages database schema changes |
-| `types` | Contains TypeScript interfaces and types |
-| `data-source.ts` | Configures the TypeORM MySQL connection |
-| `server.ts` | Initializes the database before starting Express |
-| `test-db.ts` | Provides a standalone database connection test |
+| Folder | Job |
+| --- | --- |
+| `routes` | Connects each URL to a controller function |
+| `middlewares` | Validates input and handles errors |
+| `controllers` | Receives the request and sends the response |
+| `services` | Contains the task logic (filter, sort, create, update, delete) |
+| `utils` | Reads and writes the `tasks.json` file |
+| `types` | TypeScript types for tasks |
 
 ## Getting Started
 
-### 1. Clone the repository
+### 1. Clone the project
 
 ```bash
-git clone https://github.com/Obada111/task-management-api.git
-
-cd task-management-api
+git clone <your-repository-url>
+cd Task-managment-api
 ```
 
-### 2. Install dependencies
+### 2. Install the packages
 
 ```bash
 npm install
 ```
 
-### 3. Configure environment variables
+### 3. Create the data file
 
-Create a `.env` file in the project root using `.env.example` as a reference.
+The file `data/tasks.json` must exist. If it is missing, create it with this content:
 
-```env
-NODE_ENV=development
+```json
+[]
+```
+
+### 4. Set the port (optional)
+
+Create a `.env` file in the main folder:
+
+```
 PORT=3000
-
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password_here
-DB_NAME=task_management
 ```
 
-Update the values according to your local MySQL configuration.
+If there is no `.env` file, the server uses port 3000.
 
-**Important:** Never commit your actual `.env` file or expose database credentials.
-
-### 4. Create the database
-
-Create the database using MySQL or a database management tool such as DBeaver.
-
-```sql
-CREATE DATABASE IF NOT EXISTS task_management
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-```
-
-### 5. Run database migrations
-
-Execute the migration to create the required database tables:
-
-```bash
-npm run typeorm -- migration:run -d src/data-source.ts
-```
-
-### 6. Start the development server
+### 5. Run the project
 
 ```bash
 npm run dev
 ```
 
-The server should start successfully and display:
+You should see:
 
-```text
-Database connected
+```
 Server running on port 3000
 ```
 
-The API is now available at:
-
-```text
-http://localhost:3000
-```
-
-### Optional: Test the database connection
+### Other commands
 
 ```bash
-npx ts-node src/test-db.ts
+npm run typecheck
 ```
 
-A successful connection prints:
-
-```text
-Connected
-```
-
-## Available Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Starts the development server using nodemon |
-| `npm run typecheck` | Checks TypeScript types without generating files |
-| `npm run build` | Compiles TypeScript into JavaScript |
-| `npm start` | Starts the compiled application |
+Checks the TypeScript code for errors without running it.
 
 ## API Endpoints
 
-Base URL:
-
-```text
-http://localhost:3000
-```
+Base URL: `http://localhost:3000`
 
 | Method | Endpoint | Description |
-|---|---|---|
-| GET | `/health` | Checks server availability |
-| GET | `/api/tasks` | Retrieves all tasks |
-| GET | `/api/tasks/stats` | Retrieves task statistics |
-| GET | `/api/tasks/:id` | Retrieves a task by ID |
-| POST | `/api/tasks` | Creates a new task |
-| PUT | `/api/tasks/:id` | Updates a task |
-| PATCH | `/api/tasks/:id/status` | Updates task status |
-| DELETE | `/api/tasks/:id` | Deletes a task |
+| --- | --- | --- |
+| GET | `/health` | Check that the server is running |
+| GET | `/api/tasks` | Get all tasks (with filter, search, sort, pagination) |
+| GET | `/api/tasks/stats` | Get task statistics |
+| GET | `/api/tasks/:id` | Get one task |
+| POST | `/api/tasks` | Create a task |
+| PUT | `/api/tasks/:id` | Update a task |
+| PATCH | `/api/tasks/:id/status` | Update only the status |
+| DELETE | `/api/tasks/:id` | Delete a task |
 
-## Task Fields
+### Task fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `id` | UUID | Automatically generated | Unique task identifier |
-| `title` | string | Yes (on create) | Task title (1–120 characters) |
-| `description` | string | No | Task description (maximum 1000 characters) |
-| `status` | string | No | `pending`, `in-progress`, or `completed` |
-| `priority` | string | No | `low`, `medium`, or `high` |
-| `dueDate` | string | No | Due date in `YYYY-MM-DD` format |
-| `createdAt` | datetime | Automatically generated | Task creation timestamp |
-| `updatedAt` | datetime | Automatically updated | Last modification timestamp |
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `title` | string | Yes (on create) | 1 to 120 characters |
+| `description` | string | No | Maximum 1000 characters |
+| `status` | string | No | `pending`, `in-progress` or `completed` (default `pending`) |
+| `priority` | string | No | `low`, `medium` or `high` (default `medium`) |
+| `dueDate` | string | No | Format `YYYY-MM-DD`, for example `2026-12-31` (send `null` on update to remove it) |
 
-Default values:
+The server also adds `id`, `createdAt` and `updatedAt` automatically.
 
-- `status`: `pending`
-- `priority`: `medium`
-
-## Query Parameters
-
-The `GET /api/tasks` endpoint supports the following query parameters:
+### Query parameters for `GET /api/tasks`
 
 | Parameter | Description | Example |
-|---|---|---|
-| `status` | Filter by task status | `?status=pending` |
-| `priority` | Filter by task priority | `?priority=high` |
-| `search` | Search by title or description | `?search=express` |
-| `sortBy` | Sort by `createdAt`, `dueDate`, `priority`, or `title` | `?sortBy=priority` |
-| `order` | Sorting order: `asc` or `desc` | `?order=asc` |
-| `page` | Page number (default: 1) | `?page=2` |
-| `limit` | Number of tasks per page (default: 10, maximum: 100) | `?limit=5` |
+| --- | --- | --- |
+| `status` | Filter by status | `?status=pending` |
+| `priority` | Filter by priority | `?priority=high` |
+| `search` | Search in title and description | `?search=express` |
+| `sortBy` | `createdAt`, `dueDate`, `priority` or `title` (default `createdAt`) | `?sortBy=priority` |
+| `order` | `asc` or `desc` (default `desc`) | `?order=asc` |
+| `page` | Page number (default 1) | `?page=2` |
+| `limit` | Tasks per page (default 10, maximum 100) | `?limit=5` |
 
-Parameters can be combined:
+You can combine them:
 
-```http
-GET /api/tasks?status=pending&priority=high&sortBy=priority&order=asc&page=1&limit=5
+```
+GET /api/tasks?status=pending&sortBy=priority&order=asc&page=1&limit=5
 ```
 
-## Request Examples
+## Examples
 
-### 1. Create a Task
+### Create a task
 
-**Request**
-
-```http
+```
 POST /api/tasks
 Content-Type: application/json
-```
 
-**Body**
-
-```json
 {
-  "title": "Learn TypeORM",
-  "description": "Practice database operations",
-  "status": "pending",
+  "title": "Learn Express",
+  "description": "Finish the routing chapter",
   "priority": "high",
   "dueDate": "2026-12-31"
 }
 ```
 
-**Response — 201 Created**
+Response (status 201):
 
 ```json
 {
   "success": true,
   "data": {
     "id": "ba7ac546-194a-4220-8ac1-254580d242b4",
-    "title": "Learn TypeORM",
-    "description": "Practice database operations",
+    "title": "Learn Express",
+    "description": "Finish the routing chapter",
     "status": "pending",
     "priority": "high",
     "dueDate": "2026-12-31",
@@ -263,83 +189,51 @@ Content-Type: application/json
 }
 ```
 
-### 2. Get All Tasks
+### Update only the status
 
-```http
-GET /api/tasks
 ```
-
-### 3. Get a Task by ID
-
-```http
-GET /api/tasks/:id
-```
-
-### 4. Update a Task
-
-```http
-PUT /api/tasks/:id
+PATCH /api/tasks/ba7ac546-194a-4220-8ac1-254580d242b4/status
 Content-Type: application/json
-```
 
-```json
-{
-  "title": "Learn TypeORM and MySQL",
-  "priority": "medium"
-}
-```
-
-### 5. Update Task Status
-
-```http
-PATCH /api/tasks/:id/status
-Content-Type: application/json
-```
-
-```json
 {
   "status": "completed"
 }
 ```
 
-### 6. Delete a Task
+### Get statistics
 
-```http
-DELETE /api/tasks/:id
 ```
-
-### 7. Get Task Statistics
-
-```http
 GET /api/tasks/stats
 ```
-
-**Example Response**
 
 ```json
 {
   "success": true,
   "data": {
     "total": 2,
-    "byStatus": {
-      "pending": 1,
-      "in-progress": 0,
-      "completed": 1
-    },
-    "byPriority": {
-      "low": 1,
-      "medium": 0,
-      "high": 1
-    }
+    "byStatus": { "pending": 1, "in-progress": 0, "completed": 1 },
+    "byPriority": { "low": 1, "medium": 0, "high": 1 }
   }
 }
 ```
 
+### Test with PowerShell
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/tasks -ContentType "application/json" -Body '{"title":"Learn Express","priority":"high"}'
+```
+
+### Test with curl
+
+```bash
+curl -X POST http://localhost:3000/api/tasks -H "Content-Type: application/json" -d '{"title":"Learn Express","priority":"high"}'
+```
+
 ## Response Format
 
-All API responses follow a consistent JSON structure.
+Every response has a `success` field.
 
-**Success Response**
+Success:
 
 ```json
 {
@@ -348,7 +242,7 @@ All API responses follow a consistent JSON structure.
 }
 ```
 
-**Error Response**
+Error:
 
 ```json
 {
@@ -357,40 +251,25 @@ All API responses follow a consistent JSON structure.
 }
 ```
 
-## HTTP Status Codes
-
-| Status Code | Description |
-|---|---|
-| 200 | Request successful |
-| 201 | Resource created successfully |
-| 400 | Invalid request or validation error |
-| 404 | Resource or route not found |
-| 500 | Internal server error |
+| Status code | Meaning |
+| --- | --- |
+| 200 | OK |
+| 201 | Task created |
+| 400 | Invalid input |
+| 404 | Task or route not found |
+| 500 | Server error |
 
 ## Validation Rules
 
-- `POST /api/tasks`: Title is required.
-- `PUT /api/tasks/:id`: At least one field must be provided.
-- `PATCH /api/tasks/:id/status`: Status is required.
-- `title` must be a non-empty string with a maximum of 120 characters.
-- `description` must be a string with a maximum of 1000 characters.
-- `status` must be `pending`, `in-progress`, or `completed`.
-- `priority` must be `low`, `medium`, or `high`.
-- `dueDate` must be a valid date in `YYYY-MM-DD` format.
-
-## Database Architecture
-
-This project uses TypeORM as its Object-Relational Mapper (ORM) to interact with MySQL.
-
-- **DataSource:** Manages the database connection.
-- **Entities:** Map TypeScript classes to database tables.
-- **Repositories:** Handle database operations.
-- **QueryBuilder:** Builds database queries for filtering, searching, sorting, and pagination.
-- **Migrations:** Manage database schema changes.
-
-All task data is persisted in MySQL.
+- `POST /api/tasks`: `title` is required
+- `PUT /api/tasks/:id`: send at least one field
+- `PATCH /api/tasks/:id/status`: `status` is required
+- `title` must be a non-empty text with a maximum of 120 characters
+- `description` must be a text with a maximum of 1000 characters
+- `status` must be `pending`, `in-progress` or `completed`
+- `priority` must be `low`, `medium` or `high`
+- `dueDate` must be a real date in the format `YYYY-MM-DD`
 
 ## Author
-**Obada Joba**
 
-GitHub: [@Obada111](https://github.com/Obada111)
+Obada Joba
